@@ -6,5 +6,5 @@ type Props = {
 
 export default async function GamePage({ params }: Props) {
   const { id } = await params;
-  return <SlotMachine gameId={id} />;
+  return <SlotMachine />;
 }
