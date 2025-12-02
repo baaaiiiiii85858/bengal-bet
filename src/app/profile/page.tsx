@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { 
   User, MessageCircle, LogOut, Wallet, 
@@ -19,7 +19,7 @@ import { InviteFriend } from "./components/InviteFriend";
 import { SignInTask } from "./components/SignInTask";
 import { AccountManagement } from "./components/AccountManagement";
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { user, logout } = useUser();
   const searchParams = useSearchParams();
   const [activeModal, setActiveModal] = useState<string | null>(
@@ -165,5 +165,17 @@ export default function ProfilePage() {
 
       </MainLayout>
     </ProtectedRoute>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-slate-900">
+        <div className="w-8 h-8 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }
