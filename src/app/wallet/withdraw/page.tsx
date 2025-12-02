@@ -9,6 +9,7 @@ import { collection, addDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
+import Image from "next/image";
 
 const methods = [
   { id: "bkash", name: "bKash", color: "bg-pink-600" },
@@ -124,13 +125,23 @@ export default function WithdrawPage() {
             <button
               key={method.id}
               onClick={() => setSelectedMethod(method)}
-              className={`p-3 rounded-xl border-2 transition-all ${
+              className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
                 selectedMethod.id === method.id
                   ? "border-gold bg-slate-800"
                   : "border-slate-700 bg-slate-900 opacity-60"
               }`}
             >
-              <div className={`w-full h-8 rounded mb-2 ${method.color}`} />
+              {method.id === 'bkash' ? (
+                <div className="w-full h-12 relative">
+                  <Image src="/bkash.png" alt="bKash" fill className="object-contain" />
+                </div>
+              ) : method.id === 'nagad' ? (
+                <div className="w-full h-12 relative">
+                  <Image src="/nagad.png" alt="Nagad" fill className="object-contain" />
+                </div>
+              ) : (
+                <div className={`w-full h-12 rounded ${method.color}`} />
+              )}
               <div className="text-xs font-bold text-white">{method.name}</div>
             </button>
           ))}

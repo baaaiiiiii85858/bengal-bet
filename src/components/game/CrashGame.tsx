@@ -6,13 +6,13 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, Rocket, Coins } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { useUser } from "@/context/UserContext";
 
 const getNow = () => Date.now();
 
 export function CrashGame() {
-  const { balance, updateBalance, wager } = useUser();
+  const { balance, updateBalance, wager, user } = useUser();
   const [multiplier, setMultiplier] = useState(1.00);
   const [isPlaying, setIsPlaying] = useState(false);
   const [crashed, setCrashed] = useState(false);
@@ -90,6 +90,20 @@ export function CrashGame() {
     requestRef.current = requestAnimationFrame(animate);
   }, [balance, bet, winRatio, updateBalance, wager, generateCrashPoint, animate]);
 
+  useEffect(() => {
+    if (crashed && user) {
+      addDoc(collection(db, "bets"), {
+        userId: user.id,
+        username: user.name,
+        game: "Crash",
+        amount: bet,
+        result: "loss",
+        payout: 0,
+        createdAt: new Date().toISOString()
+      }).catch(console.error);
+    }
+  }, [crashed, user, bet]);
+
   const cashOut = () => {
     if (!isPlaying || crashed || cashedOut) return;
     
@@ -99,6 +113,19 @@ export function CrashGame() {
     setCashedOut(true);
     setIsPlaying(false);
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
+
+    // Record Win
+    if (user) {
+      addDoc(collection(db, "bets"), {
+        userId: user.id,
+        username: user.name,
+        game: "Crash",
+        amount: bet,
+        result: "win",
+        payout: win,
+        createdAt: new Date().toISOString()
+      }).catch(console.error);
+    }
   };
 
   useEffect(() => {

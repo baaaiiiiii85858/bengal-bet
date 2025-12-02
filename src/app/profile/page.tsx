@@ -10,6 +10,7 @@ import { useUser } from "@/context/UserContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 // Import new components
 import { AccountRecord } from "./components/AccountRecord";
@@ -71,17 +72,21 @@ function ProfileContent() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-gold/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
             
             <div className="flex items-center gap-4 relative z-10">
-              <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center border-2 border-gold shadow-lg">
-                <User className="w-8 h-8 text-gold" />
+              <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center border-2 border-gold shadow-lg overflow-hidden relative">
+                {user?.avatar ? (
+                  <Image src={user.avatar} alt="Profile" fill className="object-cover" />
+                ) : (
+                  <User className="w-8 h-8 text-gold" />
+                )}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold text-white">{user?.name || "Set Name"}</h1>
                 </div>
                 <p className="text-slate-400 text-xs mt-1">ID: {user?.id?.slice(0, 8).toUpperCase()}</p>
-                <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded bg-gold/20 text-gold text-[10px] font-bold uppercase tracking-wider border border-gold/30">
-                  VIP Level 1
-                </div>
+                <Link href="/vip" className="mt-2 inline-flex items-center px-2 py-0.5 rounded bg-gold/20 text-gold text-[10px] font-bold uppercase tracking-wider border border-gold/30 hover:bg-gold/30 transition-colors cursor-pointer">
+                  VIP Level {user?.vipLevel || 0}
+                </Link>
               </div>
             </div>
           </div>

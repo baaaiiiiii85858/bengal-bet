@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface PaymentMethod {
   id: string;
@@ -181,13 +182,23 @@ export default function DepositPage() {
               <button
                 key={method.id}
                 onClick={() => setSelectedMethod(method)}
-                className={`p-3 rounded-xl border-2 transition-all ${
+                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
                   selectedMethod?.id === method.id
                     ? "border-gold bg-slate-800"
                     : "border-slate-700 bg-slate-900 opacity-60"
                 }`}
               >
-                <div className={`w-full h-8 rounded mb-2 ${method.color}`} />
+                {method.type === 'bkash' ? (
+                  <div className="w-full h-12 relative">
+                    <Image src="/bkash.png" alt="bKash" fill className="object-contain" />
+                  </div>
+                ) : method.type === 'nagad' ? (
+                  <div className="w-full h-12 relative">
+                    <Image src="/nagad.png" alt="Nagad" fill className="object-contain" />
+                  </div>
+                ) : (
+                  <div className={`w-full h-12 rounded ${method.color}`} />
+                )}
                 <div className="text-xs font-bold text-white">{method.name}</div>
                 <div className="text-[10px] text-slate-400 font-mono">{method.number}</div>
               </button>

@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, Fish, Coins } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { useUser } from "@/context/UserContext";
 
 export function FishingGame() {
-  const { balance, updateBalance, wager } = useUser();
+  const { balance, updateBalance, wager, user } = useUser();
   const [fishes, setFishes] = useState<{id: number, x: number, y: number, value: number, type: string}[]>(() => {
     return Array.from({ length: 5 }).map((_, i) => ({
       id: i,
@@ -81,10 +81,35 @@ export function FishingGame() {
             } 
           : f
       ));
+
+      // Record Win
+      if (user) {
+        addDoc(collection(db, "bets"), {
+          userId: user.id,
+          username: user.name,
+          game: "Fishing",
+          amount: bet,
+          result: "win",
+          payout: win,
+          createdAt: new Date().toISOString()
+        }).catch(console.error);
+      }
     } else {
       setLastWin(0);
+      // Record Loss
+      if (user) {
+        addDoc(collection(db, "bets"), {
+          userId: user.id,
+          username: user.name,
+          game: "Fishing",
+          amount: bet,
+          result: "loss",
+          payout: 0,
+          createdAt: new Date().toISOString()
+        }).catch(console.error);
+      }
     }
-  }, [balance, bet, winRatio, updateBalance, wager]);
+  }, [balance, bet, winRatio, updateBalance, wager, user]);
 
   return (
     <div className="flex flex-col h-screen bg-blue-950 text-white overflow-hidden">

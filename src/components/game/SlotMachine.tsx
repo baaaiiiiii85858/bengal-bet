@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, RotateCw, Coins, Trophy } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { useUser } from "@/context/UserContext";
 
 const SYMBOLS = ["🍒", "🍋", "🍇", "💎", "7️⃣", "🔔"];
 const BET_AMOUNTS = [10, 20, 50, 100];
 
 export function SlotMachine() {
-  const { balance, updateBalance, wager } = useUser();
+  const { balance, updateBalance, wager, user } = useUser();
   const [reels, setReels] = useState([0, 0, 0]);
   const [spinning, setSpinning] = useState(false);
   const [bet, setBet] = useState(10);
@@ -72,18 +72,36 @@ export function SlotMachine() {
 
   const checkWin = useCallback((currentReels: number[]) => {
     const [r1, r2, r3] = currentReels;
+    let result = "loss";
+    let payout = 0;
+
     if (r1 === r2 && r2 === r3) {
       // Jackpot
-      const winAmount = bet * 10;
-      setWin(winAmount);
-      updateBalance(winAmount);
+      payout = bet * 10;
+      result = "win";
+      setWin(payout);
+      updateBalance(payout);
     } else if (r1 === r2 || r2 === r3 || r1 === r3) {
       // Small win
-      const winAmount = bet * 2;
-      setWin(winAmount);
-      updateBalance(winAmount);
+      payout = bet * 2;
+      result = "win";
+      setWin(payout);
+      updateBalance(payout);
     }
-  }, [bet, updateBalance]);
+
+    // Record Bet
+    if (user) {
+      addDoc(collection(db, "bets"), {
+        userId: user.id,
+        username: user.name,
+        game: "Slots",
+        amount: bet,
+        result,
+        payout,
+        createdAt: new Date().toISOString()
+      }).catch(console.error);
+    }
+  }, [bet, updateBalance, user]);
 
   const spin = useCallback(() => {
     if (balance < bet) {

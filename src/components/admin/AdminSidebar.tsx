@@ -12,7 +12,9 @@ import {
   Bell, 
   Settings, 
   MessageSquare,
-  LogOut
+  LogOut,
+  Trophy,
+  BarChart2
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 
@@ -22,6 +24,8 @@ const menuItems = [
   { name: "Finance", href: "/admin/finance", icon: Wallet },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Affiliate", href: "/admin/affiliate", icon: Share2 },
+  { name: "VIP Management", href: "/admin/vip", icon: Trophy },
+  { name: "Leaderboard", href: "/admin/leaderboard", icon: BarChart2 },
   { name: "Logs", href: "/admin/logs", icon: FileText },
   { name: "Notifications", href: "/admin/notifications", icon: Bell },
   { name: "Settings", href: "/admin/settings", icon: Settings },

@@ -1,15 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Filter } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+
+interface BetLog {
+  id: string;
+  username: string;
+  game: string;
+  amount: number;
+  result: "win" | "loss";
+  payout: number;
+  createdAt: string;
+}
 
 export default function LogsPage() {
-  const [logs] = useState([
-    { id: 1, user: "Rahim", game: "Crash", amount: 100, result: "win", payout: 200, time: "10:30:45 AM" },
-    { id: 2, user: "Karim", game: "Slots", amount: 50, result: "loss", payout: 0, time: "10:31:12 AM" },
-    { id: 3, user: "Rahim", game: "Dice", amount: 20, result: "win", payout: 40, time: "10:32:00 AM" },
-    { id: 4, user: "Jamal", game: "Roulette", amount: 500, result: "loss", payout: 0, time: "10:35:22 AM" },
-  ]);
+  const [logs, setLogs] = useState<BetLog[]>([]);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "bets"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedLogs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as BetLog[];
+      setLogs(fetchedLogs);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const formatTime = (isoString: string) => {
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
 
   return (
     <div className="space-y-8">
@@ -46,26 +75,34 @@ export default function LogsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {logs.map((log) => (
-              <tr key={log.id} className="hover:bg-white/5 transition-colors">
-                <td className="p-4 text-gray-400 font-mono text-sm">{log.time}</td>
-                <td className="p-4 font-medium text-white">{log.user}</td>
-                <td className="p-4 text-yellow-500">{log.game}</td>
-                <td className="p-4 text-white">৳{log.amount}</td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                    log.result === "win" ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+            {logs.length > 0 ? (
+              logs.map((log) => (
+                <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                  <td className="p-4 text-gray-400 font-mono text-sm">{formatTime(log.createdAt)}</td>
+                  <td className="p-4 font-medium text-white">{log.username || "Unknown"}</td>
+                  <td className="p-4 text-yellow-500">{log.game}</td>
+                  <td className="p-4 text-white">৳{log.amount}</td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                      log.result === "win" ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                    }`}>
+                      {log.result}
+                    </span>
+                  </td>
+                  <td className={`p-4 text-right font-bold ${
+                    log.payout > 0 ? "text-green-500" : "text-gray-500"
                   }`}>
-                    {log.result}
-                  </span>
-                </td>
-                <td className={`p-4 text-right font-bold ${
-                  log.payout > 0 ? "text-green-500" : "text-gray-500"
-                }`}>
-                  ৳{log.payout}
+                    ৳{log.payout.toFixed(2)}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-gray-500">
+                  No bets recorded yet.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

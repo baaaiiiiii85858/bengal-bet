@@ -23,6 +23,7 @@ export default function RegisterPage() {
     const name = formData.get("name") as string;
     const phone = formData.get("phone") as string;
     const password = formData.get("password") as string;
+    const referralCode = formData.get("referralCode") as string;
 
     // Simple validation
     if (!name || name.length < 3) {
@@ -38,7 +39,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(name, phone, password);
+      await register(name, phone, password, referralCode);
       router.push("/");
     } catch (err: unknown) {
       console.error(err);
@@ -99,6 +100,20 @@ export default function RegisterPage() {
                 placeholder="••••••••" 
                 className="pl-10"
                 required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Referral Code (Optional)</label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+              <Input 
+                name="referralCode"
+                type="text" 
+                placeholder="Enter referral code" 
+                className="pl-10"
+                defaultValue={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') || '' : ''}
               />
             </div>
           </div>
