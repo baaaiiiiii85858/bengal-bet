@@ -211,9 +211,11 @@ export default function FinancePage() {
     try {
       if (action === "approve") {
         await updateDoc(doc(db, "withdrawals", id), { status: "approved", approvedAt: new Date().toISOString() });
-        await updateDoc(doc(db, "users", userId), { balance: increment(-amount) });
+        // Balance already deducted on request
       } else {
         await updateDoc(doc(db, "withdrawals", id), { status: "rejected", rejectedAt: new Date().toISOString() });
+        // Refund balance on rejection
+        await updateDoc(doc(db, "users", userId), { balance: increment(amount) });
       }
       fetchData();
     } catch (error) {

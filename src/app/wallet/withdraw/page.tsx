@@ -84,6 +84,12 @@ export default function WithdrawPage() {
         createdAt: new Date().toISOString()
       });
 
+      // Deduct balance immediately
+      const { doc, updateDoc, increment } = await import("firebase/firestore");
+      await updateDoc(doc(db, "users", auth.currentUser.uid), {
+        balance: increment(-Number(amount))
+      });
+
       alert("Withdrawal request submitted successfully!");
       router.push("/wallet");
     } catch (error) {
