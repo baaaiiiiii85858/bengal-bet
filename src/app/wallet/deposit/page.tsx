@@ -6,17 +6,21 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Copy, Check, Gift } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 
-const methods = [
-  { id: "bkash", name: "bKash", color: "bg-pink-600", number: "01700000000" },
-  { id: "nagad", name: "Nagad", color: "bg-orange-600", number: "01800000000" },
-];
+interface PaymentMethod {
+  id: string;
+  name: string;
+  color: string;
+  number: string;
+  type: string;
+}
 
 export default function DepositPage() {
-  const [selectedMethod, setSelectedMethod] = useState(methods[0]);
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [copied, setCopied] = useState(false);
   const [amount, setAmount] = useState("");
   const [senderNumber, setSenderNumber] = useState("");
@@ -28,6 +32,52 @@ export default function DepositPage() {
   
   const { user } = useUser(); 
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchPaymentNumbers = async () => {
+      try {
+        const q = query(collection(db, "payment_numbers"), where("active", "==", true));
+        const querySnapshot = await getDocs(q);
+        
+        const fetchedMethods: PaymentMethod[] = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          let name = "Unknown";
+          let color = "bg-gray-600";
+
+          if (data.type === 'bkash') {
+            name = "bKash";
+            color = "bg-pink-600";
+          } else if (data.type === 'nagad') {
+            name = "Nagad";
+            color = "bg-orange-600";
+          } else if (data.type === 'rocket') {
+            name = "Rocket";
+            color = "bg-purple-600";
+          } else if (data.type === 'upay') {
+            name = "Upay";
+            color = "bg-blue-600";
+          }
+
+          return {
+            id: doc.id,
+            name,
+            color,
+            number: data.number,
+            type: data.type
+          };
+        });
+
+        setMethods(fetchedMethods);
+        if (fetchedMethods.length > 0) {
+          setSelectedMethod(fetchedMethods[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching payment numbers:", error);
+      }
+    };
+
+    fetchPaymentNumbers();
+  }, []);
 
   useEffect(() => {
     const fetchBonusInfo = async () => {
@@ -69,9 +119,11 @@ export default function DepositPage() {
   }, [user]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(selectedMethod.number);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (selectedMethod) {
+      navigator.clipboard.writeText(selectedMethod.number);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +131,7 @@ export default function DepositPage() {
     setLoading(true);
 
     try {
-      if (!amount || !senderNumber || !trxId) {
+      if (!amount || !senderNumber || !trxId || !selectedMethod) {
         alert("Please fill all fields");
         setLoading(false);
         return;
@@ -97,7 +149,7 @@ export default function DepositPage() {
       await addDoc(collection(db, "deposits"), {
         userId: currentUser.uid,
         amount: Number(amount),
-        method: selectedMethod.id,
+        method: selectedMethod.type, // Use type (bkash/nagad) instead of id
         senderNumber,
         trxId,
         status: "pending",
@@ -123,36 +175,45 @@ export default function DepositPage() {
         <h1 className="text-2xl font-bold text-white">Deposit Money</h1>
 
         {/* Methods */}
-        <div className="grid grid-cols-2 gap-3">
-          {methods.map((method) => (
-            <button
-              key={method.id}
-              onClick={() => setSelectedMethod(method)}
-              className={`p-3 rounded-xl border-2 transition-all ${
-                selectedMethod.id === method.id
-                  ? "border-gold bg-slate-800"
-                  : "border-slate-700 bg-slate-900 opacity-60"
-              }`}
-            >
-              <div className={`w-full h-8 rounded mb-2 ${method.color}`} />
-              <div className="text-xs font-bold text-white">{method.name}</div>
-            </button>
-          ))}
-        </div>
+        {methods.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3">
+            {methods.map((method) => (
+              <button
+                key={method.id}
+                onClick={() => setSelectedMethod(method)}
+                className={`p-3 rounded-xl border-2 transition-all ${
+                  selectedMethod?.id === method.id
+                    ? "border-gold bg-slate-800"
+                    : "border-slate-700 bg-slate-900 opacity-60"
+                }`}
+              >
+                <div className={`w-full h-8 rounded mb-2 ${method.color}`} />
+                <div className="text-xs font-bold text-white">{method.name}</div>
+                <div className="text-[10px] text-slate-400 font-mono">{method.number}</div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 bg-slate-800 rounded-xl text-center text-slate-400">
+            No payment methods available. Please contact support.
+          </div>
+        )}
 
         {/* Admin Number */}
-        <div className="bg-slate-800 p-4 rounded-xl space-y-2 border border-slate-700">
-          <label className="text-sm text-slate-400">Send Money to this Number</label>
-          <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-700">
-            <span className="font-mono text-lg font-bold text-gold">{selectedMethod.number}</span>
-            <button onClick={handleCopy} className="text-slate-400 hover:text-white">
-              {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
-            </button>
+        {selectedMethod && (
+          <div className="bg-slate-800 p-4 rounded-xl space-y-2 border border-slate-700">
+            <label className="text-sm text-slate-400">Send Money to this Number</label>
+            <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-700">
+              <span className="font-mono text-lg font-bold text-gold">{selectedMethod.number}</span>
+              <button onClick={handleCopy} className="text-slate-400 hover:text-white">
+                {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              * Only Send Money / Cash Out allowed. No Mobile Recharge.
+            </p>
           </div>
-          <p className="text-xs text-slate-500">
-            * Only Send Money / Cash Out allowed. No Mobile Recharge.
-          </p>
-        </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -222,7 +283,7 @@ export default function DepositPage() {
           <Button 
             variant="gold" 
             className="w-full h-12 text-lg font-bold"
-            disabled={loading}
+            disabled={loading || !selectedMethod}
           >
             {loading ? "Submitting..." : "Submit Deposit"}
           </Button>
@@ -231,3 +292,4 @@ export default function DepositPage() {
     </MainLayout>
   );
 }
+
