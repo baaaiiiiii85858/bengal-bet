@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Phone, Lock } from "lucide-react";
+import { X, Phone, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useUser } from "@/context/UserContext";
@@ -22,16 +22,20 @@ export function AuthModal() {
     const formData = new FormData(e.currentTarget);
     const phone = formData.get("phone") as string;
     const password = formData.get("password") as string;
+    const name = formData.get("name") as string;
 
     try {
       if (isLogin) {
         await login(phone, password);
       } else {
         // Simple validation for register
+        if (!name || name.length < 3) {
+          throw new Error("Name must be at least 3 characters");
+        }
         if (!/^01\d{9}$/.test(phone)) {
           throw new Error("Phone number must be 11 digits starting with 01");
         }
-        await register(phone, password);
+        await register(name, phone, password);
       }
       closeAuthModal();
     } catch (err: unknown) {
@@ -66,6 +70,22 @@ export function AuthModal() {
         {/* Body */}
         <div className="p-6 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                  <Input 
+                    name="name"
+                    type="text" 
+                    placeholder="Enter your name" 
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">Phone Number</label>
               <div className="relative">
