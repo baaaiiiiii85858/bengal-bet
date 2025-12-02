@@ -5,21 +5,70 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, RotateCw, Coins, Trophy } from "lucide-react";
 import Link from "next/link";
-
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useUser } from "@/context/UserContext";
 
 const SYMBOLS = ["🍒", "🍋", "🍇", "💎", "7️⃣", "🔔"];
 const BET_AMOUNTS = [10, 20, 50, 100];
 
 export function SlotMachine() {
-  const { balance, updateBalance } = useUser();
+  const { balance, updateBalance, wager } = useUser();
   const [reels, setReels] = useState([0, 0, 0]);
   const [spinning, setSpinning] = useState(false);
   const [bet, setBet] = useState(10);
   const [win, setWin] = useState(0);
   const [autoSpin, setAutoSpin] = useState(false);
+  const [winRatio, setWinRatio] = useState(70); // Default 70%
 
   const spinTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, "game_settings", "slots");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setWinRatio(docSnap.data().winRatio || 70);
+        }
+      } catch (error) {
+        console.error("Error fetching game settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const generateOutcome = (ratio: number) => {
+    const isWin = Math.random() * 100 < ratio;
+    
+    if (isWin) {
+      // Determine win type: 10% chance for Jackpot (3 same), 90% for Small Win (2 same)
+      const isJackpot = Math.random() < 0.1;
+      const symbol = Math.floor(Math.random() * SYMBOLS.length);
+      
+      if (isJackpot) {
+        return [symbol, symbol, symbol];
+      } else {
+        // Ensure exactly 2 match
+        const r1 = symbol;
+        const r2 = symbol;
+        let r3 = Math.floor(Math.random() * SYMBOLS.length);
+        while (r3 === symbol) {
+          r3 = Math.floor(Math.random() * SYMBOLS.length);
+        }
+        // Shuffle positions
+        return [r1, r2, r3].sort(() => Math.random() - 0.5);
+      }
+    } else {
+      // Force Loss: Ensure no 2 match
+      const r1 = Math.floor(Math.random() * SYMBOLS.length);
+      let r2 = Math.floor(Math.random() * SYMBOLS.length);
+      while (r2 === r1) r2 = Math.floor(Math.random() * SYMBOLS.length);
+      let r3 = Math.floor(Math.random() * SYMBOLS.length);
+      while (r3 === r1 || r3 === r2) r3 = Math.floor(Math.random() * SYMBOLS.length);
+      return [r1, r2, r3];
+    }
+  };
 
   const checkWin = useCallback((currentReels: number[]) => {
     const [r1, r2, r3] = currentReels;
@@ -46,19 +95,16 @@ export function SlotMachine() {
     setSpinning(true);
     setWin(0);
     updateBalance(-bet);
+    wager(bet);
 
     // Mock animation duration
     setTimeout(() => {
-      const newReels = [
-        Math.floor(Math.random() * SYMBOLS.length),
-        Math.floor(Math.random() * SYMBOLS.length),
-        Math.floor(Math.random() * SYMBOLS.length),
-      ];
+      const newReels = generateOutcome(winRatio);
       setReels(newReels);
       setSpinning(false);
       checkWin(newReels);
     }, 1000);
-  }, [balance, bet, updateBalance, checkWin]);
+  }, [balance, bet, updateBalance, checkWin, winRatio, wager]);
 
   useEffect(() => {
     if (autoSpin && !spinning && balance >= bet) {
@@ -78,7 +124,7 @@ export function SlotMachine() {
         </Link>
         <div className="flex items-center space-x-2 bg-slate-800 px-4 py-1 rounded-full">
           <Coins className="w-4 h-4 text-gold" />
-          <span className="font-bold text-gold">৳ {balance}</span>
+          <span className="font-bold text-gold">৳ {balance.toFixed(2)}</span>
         </div>
       </div>
 

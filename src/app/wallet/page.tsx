@@ -1,20 +1,76 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/Button";
 import { ArrowUpRight, ArrowDownLeft, History } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
-const transactions = [
-  { id: 1, type: "deposit", amount: 500, status: "success", date: "2024-03-20" },
-  { id: 2, type: "withdraw", amount: 200, status: "pending", date: "2024-03-19" },
-  { id: 3, type: "deposit", amount: 1000, status: "success", date: "2024-03-18" },
-];
+interface Transaction {
+  id: string;
+  type: "deposit" | "withdraw";
+  amount: number;
+  status: string;
+  createdAt: string;
+  [key: string]: string | number;
+}
 
 export default function WalletPage() {
   const { balance } = useUser();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const { auth } = await import("@/lib/firebase");
+        const currentUser = auth.currentUser;
+
+        if (!currentUser) return;
+
+        // Fetch Deposits
+        const depositsQuery = query(
+          collection(db, "deposits"),
+          where("userId", "==", currentUser.uid)
+        );
+        const depositsSnapshot = await getDocs(depositsQuery);
+        const deposits = depositsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          type: "deposit" as const,
+          ...doc.data()
+        })) as Transaction[];
+
+        // Fetch Withdrawals
+        const withdrawalsQuery = query(
+          collection(db, "withdrawals"),
+          where("userId", "==", currentUser.uid)
+        );
+        const withdrawalsSnapshot = await getDocs(withdrawalsQuery);
+        const withdrawals = withdrawalsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          type: "withdraw" as const,
+          ...doc.data()
+        })) as Transaction[];
+
+        // Merge and Sort
+        const allTransactions = [...deposits, ...withdrawals].sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        setTransactions(allTransactions);
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
 
   return (
     <ProtectedRoute>
@@ -50,33 +106,42 @@ export default function WalletPage() {
             </div>
 
             <div className="space-y-3">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="bg-slate-800 p-4 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      tx.type === "deposit" ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
-                    }`}>
-                      {tx.type === "deposit" ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+              {loading ? (
+                <p className="text-slate-500 text-center py-4">Loading transactions...</p>
+              ) : transactions.length === 0 ? (
+                <p className="text-slate-500 text-center py-4">No transactions yet</p>
+              ) : (
+                transactions.map((tx) => (
+                  <div key={tx.id} className="bg-slate-800 p-4 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        tx.type === "deposit" ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                      }`}>
+                        {tx.type === "deposit" ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <div className="font-medium capitalize text-white">{tx.type}</div>
+                        <div className="text-xs text-slate-400">
+                          {new Date(tx.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium capitalize text-white">{tx.type}</div>
-                      <div className="text-xs text-slate-400">{tx.date}</div>
+                    <div className="text-right">
+                      <div className={`font-bold ${
+                        tx.type === "deposit" ? "text-green-500" : "text-red-500"
+                      }`}>
+                        {tx.type === "deposit" ? "+" : "-"}৳ {tx.amount}
+                      </div>
+                      <div className={`text-xs capitalize ${
+                        tx.status === "approved" || tx.status === "success" ? "text-green-500" : 
+                        tx.status === "rejected" ? "text-red-500" : "text-yellow-500"
+                      }`}>
+                        {tx.status}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`font-bold ${
-                      tx.type === "deposit" ? "text-green-500" : "text-red-500"
-                    }`}>
-                      {tx.type === "deposit" ? "+" : "-"}৳ {tx.amount}
-                    </div>
-                    <div className={`text-xs capitalize ${
-                      tx.status === "success" ? "text-green-500" : "text-yellow-500"
-                    }`}>
-                      {tx.status}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

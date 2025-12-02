@@ -3,33 +3,32 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Flame, Gamepad2, Dices, Fish } from "lucide-react";
+import { Flame, Gamepad2, Zap, Fish } from "lucide-react";
 
 const categories = [
   { id: "hot", label: "Hot", icon: Flame },
   { id: "slots", label: "Slots", icon: Gamepad2 },
-  { id: "table", label: "Table", icon: Dices },
+  { id: "crash", label: "Crash", icon: Zap },
   { id: "fishing", label: "Fishing", icon: Fish },
 ];
 
 const games = [
-  { id: 1, title: "Golden Empire", category: "hot", image: "bg-yellow-600" },
-  { id: 2, title: "Fortune Gems", category: "hot", image: "bg-purple-600" },
-  { id: 3, title: "Super Ace", category: "slots", image: "bg-blue-600" },
-  { id: 4, title: "Money Coming", category: "slots", image: "bg-green-600" },
-  { id: 5, title: "Poker King", category: "table", image: "bg-red-600" },
-  { id: 6, title: "Fishing War", category: "fishing", image: "bg-cyan-600" },
-  // Duplicates for grid filling
-  { id: 7, title: "Lucky God", category: "slots", image: "bg-orange-600" },
-  { id: 8, title: "Roma X", category: "hot", image: "bg-rose-600" },
+  { id: "slots-1", title: "Golden Empire", category: "hot", type: "slots", image: "bg-yellow-600" },
+  { id: "crash-1", title: "Aviator", category: "hot", type: "crash", image: "bg-purple-600" },
+  { id: "slots-2", title: "Super Ace", category: "slots", type: "slots", image: "bg-blue-600" },
+  { id: "slots-3", title: "Money Coming", category: "slots", type: "slots", image: "bg-green-600" },
+  { id: "crash-2", title: "Crash X", category: "crash", type: "crash", image: "bg-red-600" },
+  { id: "fishing-1", title: "Fishing War", category: "fishing", type: "fishing", image: "bg-cyan-600" },
+  { id: "slots-4", title: "Lucky God", category: "slots", type: "slots", image: "bg-orange-600" },
+  { id: "fishing-2", title: "Mega Fishing", category: "fishing", type: "fishing", image: "bg-teal-600" },
 ];
 
 export function GameGrid() {
   const [activeTab, setActiveTab] = useState("hot");
 
   const filteredGames = activeTab === "hot" 
-    ? games.filter(g => g.category === "hot" || g.id < 5) // Show mix for hot
-    : games.filter(g => g.category === activeTab);
+    ? games.filter(g => g.category === "hot" || g.id === "slots-2" || g.id === "fishing-1") // Mix for hot
+    : games.filter(g => g.type === activeTab || g.category === activeTab);
 
   return (
     <div className="space-y-4">
@@ -60,7 +59,7 @@ export function GameGrid() {
         {filteredGames.map((game) => (
           <Link 
             key={game.id} 
-            href={`/game/${game.id}`}
+            href={`/game/${game.id}?type=${game.type}`}
             className="group relative aspect-square rounded-xl overflow-hidden bg-slate-800 hover:ring-2 hover:ring-gold transition-all"
           >
             <div className={cn("absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity", game.image)} />

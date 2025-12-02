@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Phone, Lock } from "lucide-react";
+import { Phone, Lock, User } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 
 export default function RegisterPage() {
@@ -20,10 +20,17 @@ export default function RegisterPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
     const phone = formData.get("phone") as string;
     const password = formData.get("password") as string;
 
     // Simple validation
+    if (!name || name.length < 3) {
+      setError("Name must be at least 3 characters");
+      setLoading(false);
+      return;
+    }
+
     if (!/^01\d{9}$/.test(phone)) {
       setError("Phone number must be 11 digits starting with 01");
       setLoading(false);
@@ -31,7 +38,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(phone, password);
+      await register(name, phone, password);
       router.push("/");
     } catch (err: unknown) {
       console.error(err);
@@ -54,6 +61,20 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Full Name</label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+              <Input 
+                name="name"
+                type="text" 
+                placeholder="Enter your name" 
+                className="pl-10"
+                required
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300">Phone Number</label>
             <div className="relative">
