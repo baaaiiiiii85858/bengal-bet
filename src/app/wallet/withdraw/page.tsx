@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { db, auth } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
@@ -19,7 +18,7 @@ const methods = [
 export default function WithdrawPage() {
   const [selectedMethod, setSelectedMethod] = useState(methods[0]);
   const [amount, setAmount] = useState("");
-  const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const { balance, user, remainingTurnover } = useUser();
   const router = useRouter();
@@ -29,7 +28,7 @@ export default function WithdrawPage() {
     setLoading(true);
 
     try {
-      if (!amount || !password) {
+      if (!amount || !pin) {
         alert("Please fill all fields");
         setLoading(false);
         return;
@@ -47,6 +46,21 @@ export default function WithdrawPage() {
         return;
       }
 
+      // Check if user has set a Withdraw PIN
+      if (!user?.withdrawPin) {
+        alert("Please set your Withdraw PIN in Profile first.");
+        router.push("/profile?open=account");
+        setLoading(false);
+        return;
+      }
+
+      // Verify PIN
+      if (pin !== user.withdrawPin) {
+        alert("Incorrect Withdraw PIN!");
+        setLoading(false);
+        return;
+      }
+
       // Get saved wallet number
       const walletNumber = user?.walletInfo?.[selectedMethod.id as "bkash" | "nagad"];
       if (!walletNumber) {
@@ -56,19 +70,8 @@ export default function WithdrawPage() {
         return;
       }
 
-      // Verify Password
-      if (!auth.currentUser || !auth.currentUser.email) {
+      if (!auth.currentUser) {
         alert("User not authenticated");
-        return;
-      }
-
-      try {
-        // Re-authenticate
-        await signInWithEmailAndPassword(auth, auth.currentUser.email, password);
-      } catch (err) {
-        console.error("Password verification failed:", err);
-        alert("Incorrect Password!");
-        setLoading(false);
         return;
       }
 
@@ -157,12 +160,13 @@ export default function WithdrawPage() {
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Account Password</label>
+            <label className="text-sm font-medium text-slate-300">Withdraw PIN</label>
             <Input 
               type="password" 
-              placeholder="Enter your password to confirm" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              maxLength={4}
+              placeholder="Enter 4-digit PIN" 
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
             />
           </div>
 

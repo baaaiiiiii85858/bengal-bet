@@ -24,6 +24,7 @@ interface UserData {
   depositCount?: number;
   specialBonus?: number;
   balance?: number; // Add balance to UserData for type safety
+  withdrawPin?: string;
 }
 
 interface UserContextType {
