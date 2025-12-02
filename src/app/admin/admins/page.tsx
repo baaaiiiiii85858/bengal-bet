@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where, addDoc, setDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { UserPlus, Shield, Trash2 } from "lucide-react";
-import { useUser } from "@/context/UserContext";
+import { useUser, UserData } from "@/context/UserContext";
 
 const PERMISSIONS = [
   { id: "games", label: "Games Management" },
@@ -23,7 +23,7 @@ const PERMISSIONS = [
 
 export default function AdminManagementPage() {
   const { user } = useUser();
-  const [admins, setAdmins] = useState<any[]>([]);
+  const [admins, setAdmins] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   
@@ -41,7 +41,7 @@ export default function AdminManagementPage() {
     try {
       const q = query(collection(db, "users"), where("role", "in", ["admin", "master_admin"]));
       const snap = await getDocs(q);
-      setAdmins(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setAdmins(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserData)));
     } catch (error) {
       console.error("Error fetching admins:", error);
     } finally {
@@ -86,9 +86,13 @@ export default function AdminManagementPage() {
       // Since we are logged out, we might need to redirect or handle re-login.
       // In a real app, use Cloud Functions for this!
       
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating admin:", error);
-      alert("Error: " + error.message);
+      if (error instanceof Error) {
+        alert("Error: " + error.message);
+      } else {
+        alert("An unknown error occurred");
+      }
     }
   };
 
@@ -128,7 +132,7 @@ export default function AdminManagementPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-white">{admin.name}</h3>
-                  <p className="text-xs text-gray-500 capitalize">{admin.role.replace("_", " ")}</p>
+                  <p className="text-xs text-gray-500 capitalize">{admin.role?.replace("_", " ")}</p>
                 </div>
               </div>
               {admin.role !== "master_admin" && (
