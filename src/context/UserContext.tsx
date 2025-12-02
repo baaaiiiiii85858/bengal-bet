@@ -36,6 +36,8 @@ export interface UserData {
     claimable: number;
   };
   vipLevel?: number;
+  role?: 'user' | 'admin' | 'master_admin';
+  permissions?: string[]; // e.g. ['finance', 'users', 'games']
   claimableRewards?: {
     id: string;
     type: string;

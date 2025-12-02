@@ -19,22 +19,23 @@ import {
 import { useUser } from "@/context/UserContext";
 
 const menuItems = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Games", href: "/admin/games", icon: Gamepad2 },
-  { name: "Finance", href: "/admin/finance", icon: Wallet },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Affiliate", href: "/admin/affiliate", icon: Share2 },
-  { name: "VIP Management", href: "/admin/vip", icon: Trophy },
-  { name: "Leaderboard", href: "/admin/leaderboard", icon: BarChart2 },
-  { name: "Logs", href: "/admin/logs", icon: FileText },
-  { name: "Notifications", href: "/admin/notifications", icon: Bell },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
-  { name: "Support", href: "/admin/support", icon: MessageSquare },
+  { name: "Dashboard", href: "/admin", icon: LayoutDashboard, permission: "dashboard" },
+  { name: "Admins", href: "/admin/admins", icon: Users, permission: "admins" }, // New Admin Management
+  { name: "Games", href: "/admin/games", icon: Gamepad2, permission: "games" },
+  { name: "Finance", href: "/admin/finance", icon: Wallet, permission: "finance" },
+  { name: "Users", href: "/admin/users", icon: Users, permission: "users" },
+  { name: "Affiliate", href: "/admin/affiliate", icon: Share2, permission: "affiliate" },
+  { name: "VIP Management", href: "/admin/vip", icon: Trophy, permission: "vip" },
+  { name: "Leaderboard", href: "/admin/leaderboard", icon: BarChart2, permission: "leaderboard" },
+  { name: "Logs", href: "/admin/logs", icon: FileText, permission: "logs" },
+  { name: "Notifications", href: "/admin/notifications", icon: Bell, permission: "notifications" },
+  { name: "Settings", href: "/admin/settings", icon: Settings, permission: "settings" },
+  { name: "Support", href: "/admin/support", icon: MessageSquare, permission: "support" },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
-  const { logout } = useUser();
+  const { logout, user } = useUser();
 
   return (
     <div className="w-64 bg-[#1a1a2e] border-r border-white/10 h-screen flex flex-col fixed left-0 top-0 overflow-y-auto z-50">
@@ -42,11 +43,28 @@ export default function AdminSidebar() {
         <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
           Bengal Admin
         </h1>
+        {user?.role === 'master_admin' && (
+          <span className="text-xs text-yellow-500 font-bold px-2 py-1 bg-yellow-500/10 rounded mt-2 inline-block">
+            Master Admin
+          </span>
+        )}
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
+          
+          // Permission Check
+          if (user?.role !== 'master_admin') {
+            // If not master admin, check permissions
+            // Dashboard is always accessible to any admin
+            if (item.permission !== 'dashboard' && !user?.permissions?.includes(item.permission)) {
+              return null;
+            }
+            // Hide "Admins" menu for non-master admins
+            if (item.permission === 'admins') return null;
+          }
+
           return (
             <Link
               key={item.href}
